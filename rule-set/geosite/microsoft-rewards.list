@@ -1,0 +1,7 @@
+# Rewards
+DOMAIN,msrewardspme.azureedge.net
+# Bing
+DOMAIN-SUFFIX,bing.com
+DOMAIN-SUFFIX,bing.net
+# 365 Common & Office Online
+DOMAIN-SUFFIX,events.data.microsoft.com
