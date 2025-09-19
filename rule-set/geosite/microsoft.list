@@ -1,0 +1,8 @@
+# https://meta.appinn.net/t/topic/74509/2
+DOMAIN,cn.bing.com
+DOMAIN,www.bing.com
+DOMAIN,rewards.bing.com
+DOMAIN,msrewardspme.azureedge.net
+
+# Delivery Optimization
+DOMAIN-SUFFIX,prod.do.dsp.mp.microsoft.com
