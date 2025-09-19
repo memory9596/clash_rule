@@ -1,0 +1,35 @@
+# https://meta.appinn.net/t/topic/74509/2
+# Rewards
+DOMAIN,msrewardspme.azureedge.net
+# ?
+DOMAIN,prod.rewardsplatform.microsoft.com
+
+# https://github.com/2dust/v2rayN/issues/8522
+DOMAIN,fd.api.iris.microsoft.com
+
+# https://github.com/privacy-protection-tools/anti-AD/issues/315
+# https://github.com/StevenBlack/hosts/issues/2232
+DOMAIN-SUFFIX,pipe.aria.microsoft.com
+
+# Bing
+DOMAIN-SUFFIX,bing.com
+DOMAIN-SUFFIX,bing.net
+
+# Location?
+DOMAIN,location.microsoft.com
+
+# MSN
+DOMAIN-SUFFIX,msn.com
+
+# Office
+DOMAIN-SUFFIX,office.com
+DOMAIN-SUFFIX,office.net
+
+# Risk Verification
+DOMAIN,login.microsoftonline.com
+
+# Login
+DOMAIN,login.live.com
+
+# Delivery Optimization
+DOMAIN-SUFFIX,prod.do.dsp.mp.microsoft.com
