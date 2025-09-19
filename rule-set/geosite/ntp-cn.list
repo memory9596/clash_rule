@@ -1,0 +1,9 @@
+DOMAIN,pool.ntp.org
+DOMAIN,asia.pool.ntp.org
+DOMAIN,cn.pool.ntp.org
+DOMAIN,hk.pool.ntp.org
+DOMAIN,jp.pool.ntp.org
+DOMAIN,sg.pool.ntp.org
+DOMAIN,tw.pool.ntp.org
+DOMAIN,time.asia.apple.com
+DOMAIN,time-ios.g.aaplimg.com
