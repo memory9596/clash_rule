@@ -1,0 +1,51 @@
+# https://meta.appinn.net/t/topic/74509/2
+# Rewards
+DOMAIN,msrewardspme.azureedge.net
+# Bing
+DOMAIN,cn.bing.com
+DOMAIN,rewards.bing.com
+DOMAIN,www.bing.com
+
+# https://learn.microsoft.com/en-us/windows/privacy/windows-11-endpoints-non-enterprise-editions
+# Diagnostic data
+DOMAIN,browser.events.data.msn.com
+DOMAIN,functional.events.data.microsoft.com
+DOMAIN,v10.events.data.microsoft.com
+DOMAIN,watson.events.data.microsoft.com
+DOMAIN,watson.telemetry.microsoft.com
+DOMAIN,www.microsoft.com
+# Location
+DOMAIN,inference.location.live.net
+# Windows Spotlight
+DOMAIN,api.msn.com
+DOMAIN,arc.msn.com
+DOMAIN,ris.api.iris.microsoft.com
+# WNS / Windows Push Notification Services
+DOMAIN-SUFFIX,wns.windows.com
+
+# https://learn.microsoft.com/en-us/answers/questions/4093775/microsoft-edge-is-making-suspicious-connection
+DOMAIN-SUFFIX,nelreports.net
+
+# https://github.com/2dust/v2rayN/issues/8522
+DOMAIN,fd.api.iris.microsoft.com
+# https://github.com/privacy-protection-tools/anti-AD/issues/882#issuecomment-2094917297
+DOMAIN,browser.events.data.microsoft.com
+DOMAIN-KEYWORD,mobile.events.data.microsoft.com
+
+# MSN
+DOMAIN,assets.msn.com
+DOMAIN,superapp.msn.com
+
+# Bing
+DOMAIN-SUFFIX,mm.bing.net
+
+# CDN?
+DOMAIN-SUFFIX,sapphire.api.microsoftapp.net
+DOMAIN-SUFFIX,sapphire.azureedge.net
+DOMAIN-SUFFIX,sapphire.microsoftapp.net
+
+# Location?
+DOMAIN,location.microsoft.com
+
+# Rewards?
+DOMAIN,prod.rewardsplatform.microsoft.com
