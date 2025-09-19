@@ -1,0 +1,206 @@
+name: Daily Update
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/**'
+      - '*.md'
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Keep scheduled workflow activity
+      uses: WaterLemons2k/scheduled-workflow-activity-action@v1
+
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        retain_days: 0
+        keep_minimum_runs: 0
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Download resources
+      run: |
+        mkdir -p ./publish/geosite
+        mkdir -p ./publish/geoip
+        mkdir -p work
+        curl -s -o ./publish/geosite/realip.srs https://raw.githubusercontent.com/DustinWin/ruleset_geodata/sing-box-ruleset/fakeip-filter.srs
+        curl -s -o ./publish/geosite/realip.json https://raw.githubusercontent.com/DustinWin/ruleset_geodata/sing-box-ruleset/fakeip-filter.json
+        curl -s -o ./publish/geosite/realip.mrs https://raw.githubusercontent.com/DustinWin/ruleset_geodata/mihomo-ruleset/fakeip-filter.mrs
+        curl -s -o ./publish/geosite/realip.list https://raw.githubusercontent.com/DustinWin/ruleset_geodata/mihomo-ruleset/fakeip-filter.list
+        curl -s -o ./publish/geosite/cn.srs https://raw.githubusercontent.com/CHIZI-0618/v2ray-rules-dat/release/singbox_rule_set/geosite-cn.srs
+        curl -s -o ./publish/geosite/china-list.srs https://raw.githubusercontent.com/CHIZI-0618/v2ray-rules-dat/release/singbox_rule_set/geosite-china-list.srs
+        curl -s -o ./publish/geosite/cn.mrs https://raw.githubusercontent.com/wwqgtxx/clash-rules/release/direct.mrs
+        curl -s -o ./publish/geosite/cn.list https://raw.githubusercontent.com/wwqgtxx/clash-rules/release/direct.mrs
+        curl -s -o ./publish/geosite/onedrive.mrs https://raw.githubusercontent.com/GitMetaio/rule/master/rule/Clash/OneDrive/OneDrive_OCD_Domain.mrs
+        curl -s -o ./publish/geosite/steam@cn.mrs https://raw.githubusercontent.com/GitMetaio/rule/master/rule/Clash/SteamCN/SteamCN_OCD_Domain.mrs
+        cd work || exit 1
+        curl -s -O https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geosite.dat
+        curl -s -O https://raw.githubusercontent.com/lingeringsound/10007_auto/main/configure/保留奖励.prop
+        curl -s -O https://raw.githubusercontent.com/GitMetaio/rule/master/rule/Clash/OneDrive/OneDrive_OCD_Domain.txt
+        curl -s -O https://raw.githubusercontent.com/GitMetaio/rule/master/rule/Clash/SteamCN/SteamCN_OCD_Domain.txt
+        curl -s -o ./ads https://raw.githubusercontent.com/lingeringsound/10007_auto/main/reward
+
+    - name: Download mihomo
+      run: |
+        wget -q -O ./mihomo.gz $(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep -E -o 'https://[^"]*/mihomo-linux-amd64-v[0-9.]+\.gz')
+        gzip -d mihomo.gz
+        chmod +x mihomo
+
+    - name: Download sing-box
+      run: |
+        wget -q -O ./sing-box.tar.gz $(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep -E -o 'https://[^"]*/sing-box-[0-9.]+-linux-amd64\.tar\.gz')
+        tar -zxvf sing-box.tar.gz --strip-components=1 --wildcards '*/sing-box'
+        chmod +x sing-box
+
+    # - name: Download yq
+    #   run: |
+    #     wget -q -O ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+    #     chmod +x yq
+
+    - name: Download jq
+      run: |
+        wget -q -O ./jq https://github.com/jqlang/jq/releases/latest/download/jq-linux-amd64
+        chmod +x jq
+
+    - name: Download geo
+      run: |
+        wget -q -O ./geo https://github.com/MetaCubeX/geo/releases/latest/download/geo-linux-amd64
+        chmod +x geo
+
+    - name: Build mrs
+      run: |
+        cd work || exit 1
+
+        # ../geo unpack site ./geosite.dat -d . -c category-dev
+        # cat category-dev | grep -Ev "@ads|@cn" | perl -ne '/^((domain|full|regex):[^:]+)(\n$|:@.+)/ && print "$1\n"' | sed 's/^domain:/DOMAIN-SUFFIX,/I' | sed 's/^full:/DOMAIN,/I' | sed 's/^regex:/DOMAIN-REGEX,/I' > ../publish/geosite/category-dev-!cn.list
+
+        ../geo unpack site ./geosite.dat -d . -c china-list
+        cat china-list | perl -ne '/^((domain|full):[^:]+)(\n$|:@.+)/ && print "$1\n"' | sed 's/^domain:/+./I' | sed 's/^full://I' > ../publish/geosite/china-list.list
+
+        grep -v "^#" "保留奖励.prop" > ../publish/geosite/reward.list
+
+        grep '^0\.0\.0\.0 ' ads | awk '{print $2}' | sed 's/\.$//' > ads.txt
+        grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$' ads.txt > ip.txt
+        sed 's/$/\/32/' ip.txt > ../publish/geoip/ads.list
+        grep -E -v '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$' ads.txt > ../publish/geosite/ads.list
+
+        ../mihomo convert-ruleset domain text ../publish/geosite/china-list.list ../publish/geosite/china-list.mrs
+        ../mihomo convert-ruleset domain text ../publish/geosite/reward.list ../publish/geosite/reward.mrs
+        ../mihomo convert-ruleset domain text ../publish/geosite/ads.list ../publish/geosite/ads.mrs
+        ../mihomo convert-ruleset ipcidr text ../publish/geoip/ads.list ../publish/geoip/ads.mrs
+
+    - name: Build srs
+      run: |
+        cd work || exit 1
+
+        compile() {
+          local input_file=$1
+          local output_name=$2
+
+          grep -vE "^(\+\.|\*\.)" "$input_file" | grep -v "^#" | sed '/^$/d' > domain.tmp
+          grep -E "^\+\." "$input_file" | grep -v "^#" | sed '/^$/d' | sed 's/^\+\.//; s/^\*\././' > domain-suffix.tmp
+          echo -n > domain-regex.tmp
+          grep -E "^\*\." "$input_file" | sed 's/^\*\.//' | sed 's/\./\\./g' | sed 's/^/^[^.]+\\./; s/$/$/' >> domain-regex.tmp
+          grep -E "^\." "$input_file" | sed 's/^\.//' | sed 's/\./\\./g' | sed 's/^/.+\\./; s/$/$/' >> domain-regex.tmp
+          grep -E "^\*$" "$input_file" | sed 's/^\*$/^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$/' >> domain-regex.tmp
+
+          ../jq -n \
+            --rawfile d domain.tmp \
+            --rawfile ds domain-suffix.tmp \
+            --rawfile dr domain-regex.tmp \
+            '
+              ($d | split("\n") | map(select(length > 0))) as $d_arr |
+              ($ds | split("\n") | map(select(length > 0))) as $ds_arr |
+              ($dr | split("\n") | map(select(length > 0))) as $dr_arr |
+              {
+                version: 2,
+                rules: [
+                  {
+                    domain: $d_arr,
+                    domain_suffix: $ds_arr,
+                    domain_regex: $dr_arr
+                  } | with_entries(select(.value | length > 0))
+                ]
+              }
+            '> "../publish/geosite/${output_name}.json"
+          ../sing-box rule-set compile "../publish/geosite/${output_name}.json"
+        }
+
+        decompile() {
+          local input_file=$1
+          local output_name=$2
+          ../sing-box rule-set decompile "../publish/geosite/${input_file}"
+        }
+
+        compile "../publish/geosite/ads.list" "ads"
+        compile "../publish/geosite/reward.list" "reward"
+        compile "OneDrive_OCD_Domain.txt" "onedrive"
+        compile "SteamCN_OCD_Domain.txt" "steam@cn"
+        decompile "cn.srs" "cn"
+        decompile "china-list.srs" "china-list"
+
+        mv "OneDrive_OCD_Domain.txt" "../publish/geosite/onedrive.list"
+        mv "SteamCN_OCD_Domain.txt" "../publish/geosite/steam@cn.list"
+
+        # cat ../publish/geosite/reward.list | ../jq -R -s '
+        #   split("\n") |
+        #   map(select(length > 0)) |
+        #   {
+        #     version: 2,
+        #     rules: [
+        #       {
+        #         domain: .
+        #       }
+        #     ]
+        #   }' > "../publish/geosite/reward.json"
+        # ../sing-box rule-set compile "../publish/geosite/reward.json"
+
+        cat ../publish/geoip/ads.list | ../jq -R -s '
+          split("\n") |
+          map(select(length > 0)) |
+          {
+            version: 2,
+            rules: [
+              {
+                ip_cidr: .
+              }
+            ]
+          }
+        ' > "../publish/geoip/ads.json"
+        ../sing-box rule-set compile "../publish/geoip/ads.json"
+
+    - name: Commit and push
+      run: |
+        cd publish || exit 1
+        git init
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git checkout -b release
+        git add .
+        git commit -m "Auto-update"
+        git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+        git push -f -u origin release
+
+    - name: Purge jsdelivr CDN
+      run: |
+        cd publish || exit 1
+        find . -type f \( -name "*.mrs" -o -name "*.list" \) -print0 | while IFS= read -r -d '' path; do
+            file_path="${path#./}"
+            echo "Purging $file_path"
+            curl -s -I "https://purge.jsdelivr.net/gh/${{ github.repository }}@release/$file_path"
+        done
+
+    env:
+      TZ: Asia/Shanghai
