@@ -1,0 +1,113 @@
+name: Daily Update
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/**'
+      - '*.md'
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Keep scheduled workflow activity
+      uses: WaterLemons2k/scheduled-workflow-activity-action@v1
+
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        retain_days: 0
+        keep_minimum_runs: 0
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Download resources
+      run: |
+        mkdir -p release
+        cd release || exit 1
+        curl -s -O https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geosite.dat
+        curl -s -O https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt
+        curl -s -O https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/proxy.txt
+        curl -s -O https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/gfw.txt
+        curl -s -O https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/reject.txt
+        curl -s -O https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cncidr.txt
+        curl -s -O https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash.yaml
+        curl -s -O https://raw.githubusercontent.com/lingeringsound/10007_auto/main/configure/保留奖励.prop
+        curl -s -O https://raw.githubusercontent.com/lingeringsound/10007_auto/main/reward
+
+    - name: Download mihomo
+      run: |
+        wget -q -O ./mihomo.gz $(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep -E -o 'https://[^"]*/mihomo-linux-amd64-v[0-9.]+\.gz')
+        gzip -d mihomo.gz
+        chmod +x mihomo
+
+    - name: Download yq
+      run: |
+        wget -q -O ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        chmod +x yq
+
+    - name: Download geo
+      run: |
+        wget -q -O ./geo https://github.com/MetaCubeX/geo/releases/latest/download/geo-linux-amd64
+        chmod +x geo
+
+    - name: Build mrs
+      run: |
+        cd release || exit 1
+
+        ../geo unpack site ./geosite.dat -d . -c category-dev
+        cat category-dev | grep -Ev "@ads|@cn" | perl -ne '/^((domain|full|regex):[^:]+)(\n$|:@.+)/ && print "$1\n"' | sed 's/^domain:/DOMAIN-SUFFIX,/I' | sed 's/^full:/DOMAIN,/I' | sed 's/^regex:/DOMAIN-REGEX,/I' > category-dev-!cn.list
+
+        grep -v "^#" "保留奖励.prop" > allow.list
+
+        grep '^0\.0\.0\.0 ' reward | awk '{print $2}' | sed 's/\.$//' > reward.txt
+        grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$' reward.txt > ip.txt
+        sed 's/$/\/32/' ip.txt > 10007-ads-ipcidr.list
+        grep -E -v '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$' reward.txt > 10007-ads-domain.list
+
+        ../yq '.payload[]' direct.txt > direct.list
+        ../yq '.payload[]' proxy.txt > proxy.list
+        ../yq '.payload[]' gfw.txt > gfw.list
+        ../yq '.payload[]' reject.txt > reject.list
+        ../yq '.payload[]' cncidr.txt > cncidr.list
+        ../yq '.payload[]' AWAvenue-Ads-Rule-Clash.yaml > awavenue-ads.list
+        ../mihomo convert-ruleset domain yaml direct.txt direct.mrs
+        ../mihomo convert-ruleset domain yaml proxy.txt proxy.mrs
+        ../mihomo convert-ruleset domain yaml gfw.txt gfw.mrs
+        ../mihomo convert-ruleset domain yaml reject.txt reject.mrs
+        ../mihomo convert-ruleset ipcidr yaml cncidr.txt cncidr.mrs
+        ../mihomo convert-ruleset domain yaml AWAvenue-Ads-Rule-Clash.yaml awavenue-ads.mrs
+        ../mihomo convert-ruleset domain text allow.list allow.mrs
+        ../mihomo convert-ruleset domain text 10007-ads-domain.list 10007-ads-domain.mrs
+        ../mihomo convert-ruleset ipcidr text 10007-ads-ipcidr.list 10007-ads-ipcidr.mrs
+
+    - name: Commit and push
+      run: |
+        cd release || exit 1
+        git init
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git checkout -b release
+        git add *.mrs *.list
+        git commit -m "Auto-update"
+        git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+        git push -f -u origin release
+
+    - name: Purge jsdelivr CDN
+      run: |
+        cd release || exit 1
+        while IFS= read -r -d '' path; do
+            curl -i "https://purge.jsdelivr.net/gh/${{ github.repository }}@release/${path#./}"
+        done < <(find . -not -path './.git/*' -not -name '.git' -print0)
+
+    env:
+      TZ: Asia/Shanghai
