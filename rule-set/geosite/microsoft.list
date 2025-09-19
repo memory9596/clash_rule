@@ -1,0 +1,30 @@
+# https://meta.appinn.net/t/topic/74509/2
+# Rewards
+DOMAIN,msrewardspme.azureedge.net
+# Bing
+DOMAIN,cn.bing.com
+DOMAIN,rewards.bing.com
+DOMAIN,www.bing.com
+
+# https://learn.microsoft.com/en-us/windows/privacy/windows-11-endpoints-non-enterprise-editions
+# Diagnostic data
+DOMAIN,browser.events.data.msn.com
+DOMAIN,functional.events.data.microsoft.com
+DOMAIN,self.events.data.microsoft.com
+DOMAIN,v10.events.data.microsoft.com
+DOMAIN,watson.events.data.microsoft.com
+DOMAIN,watson.telemetry.microsoft.com
+DOMAIN,www.microsoft.com
+# Location
+DOMAIN,inference.location.live.net
+# Windows Spotlight
+DOMAIN,api.msn.com
+DOMAIN,arc.msn.com
+DOMAIN,ris.api.iris.microsoft.com
+
+# https://github.com/2dust/v2rayN/issues/8522
+DOMAIN,fd.api.iris.microsoft.com
+# https://github.com/privacy-protection-tools/anti-AD/issues/882#issuecomment-2094917297
+DOMAIN,browser.events.data.microsoft.com
+DOMAIN,mobile.events.data.microsoft.com
+DOMAIN-REGEX,^[a-z]{2}-mobile\.events\.data\.microsoft\.com$
