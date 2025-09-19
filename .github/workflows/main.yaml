@@ -1,0 +1,459 @@
+name: Daily Update
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Keep scheduled workflow activity
+        uses: WaterLemons2k/scheduled-workflow-activity-action@v2
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Prepare
+        run: |
+          mkdir -p ./publish/geosite
+          mkdir -p ./publish/geoip
+          curl -s -O https://raw.githubusercontent.com/v2fly/domain-list-community/release/dlc.dat
+          curl -s -O https://raw.githubusercontent.com/VirgilClyne/GetSomeFries/main/ruleset/HTTPDNS.Block.list
+
+      - name: Download mihomo
+        run: |
+          # wget -q -O ./mihomo.gz $(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep -E -o 'https://[^"]*/mihomo-linux-amd64-v[0-9.]+\.gz')
+          wget -q -O ./mihomo.gz https://github.com/MetaCubeX/mihomo/releases/download/v1.19.29/mihomo-linux-amd64-v1.19.29.gz
+          gzip -d mihomo.gz
+          chmod +x mihomo
+
+      - name: Download sing-box
+        run: |
+          # wget -q -O ./sing-box.tar.gz $(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep -E -o 'https://[^"]*/sing-box-[0-9.]+-linux-amd64\.tar\.gz')
+          wget -q -O ./sing-box.tar.gz https://github.com/SagerNet/sing-box/releases/download/v1.14.0-alpha.10/sing-box-1.14.0-alpha.10-linux-amd64.tar.gz
+          tar -zxvf sing-box.tar.gz --strip-components=1 --wildcards '*/sing-box'
+          chmod +x sing-box
+
+      - name: Install v2dat
+        run: |
+          go install -trimpath -ldflags="-s -w -buildid=" github.com/urlesistiana/v2dat@latest
+
+      - name: Shared functions
+        run: |
+          cat << 'EOF' > ./func.sh
+          mihomo_domain_text_to_singbox() {
+            local in="$1"
+            local out="$2"
+
+            grep -vE "^(\+\.|\*\.)" "$in" | grep -v "^#" | sed '/^$/d' > d.tmp
+            grep -E "^\+\." "$in" | grep -v "^#" | sed '/^$/d' | sed 's/^\+\.//; s/^\*\././' > ds.tmp
+            echo -n > dr.tmp
+            grep -E "^\*\." "$in" | sed 's/^\*\.//; s/\./\\./g; s/^/^[^.]+\\./; s/$/$/' >> dr.tmp
+            grep -E "^\." "$in" | sed 's/^\.//; s/\./\\./g; s/^/.+\\./; s/$/$/' >> dr.tmp
+            grep -E "^\*$" "$in" | sed 's/^\*$/^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$/' >> dr.tmp
+
+            jq -n \
+              --rawfile d d.tmp \
+              --rawfile ds ds.tmp \
+              --rawfile dr dr.tmp \
+              '
+                {
+                  version: 2,
+                  rules: [
+                    {
+                      domain: ($d | split("\n") | map(select(length > 0))),
+                      domain_suffix: ($ds | split("\n") | map(select(length > 0))),
+                      domain_regex: ($dr | split("\n") | map(select(length > 0)))
+                    }
+                    | with_entries(select(.value | length > 0))
+                  ]
+                }
+              ' > "$out"
+          }
+
+          mihomo_ipcidr_text_to_singbox() {
+            local in="$1"
+            local out="$2"
+
+            jq -Rn \
+              '
+                {
+                  version: 2,
+                  rules: [
+                    [
+                      inputs
+                      | select(test("^#") | not)
+                    ] | {
+                      ip_cidr: .
+                    }
+                    | with_entries(select(.value | length > 0))
+                  ]
+                }
+              ' "$in" > "$out"
+          }
+
+          mihomo_classical_text_to_singbox() {
+            local in="$1"
+            local out="$2"
+
+            jq -Rn \
+            '
+              {
+                version: 2,
+                rules: [
+                  [
+                    inputs
+                    | select(test("^#") | not)
+                    | index(",") as $idx
+                    | {type: .[0:$idx], value: .[$idx+1:]}
+                  ] | {
+                    domain: [ .[] | select(.type == "DOMAIN") | .value ],
+                    domain_suffix: [ .[] | select(.type == "DOMAIN-SUFFIX") | .value ],
+                    domain_regex: [ .[] | select(.type == "DOMAIN-REGEX") | .value ],
+                    domain_keyword: [ .[] | select(.type == "DOMAIN-KEYWORD") | .value ]
+                  }
+                  | with_entries(select(.value | length > 0))
+                ]
+              }
+            ' "$in" > "$out"
+          }
+
+          v2ray_to_mihomo_classical_text() {
+            local in="$1"
+            local out="$2"
+
+            perl -ne '
+              if (/^((full:|regexp:)?\s*(.+))/i) {
+                $prefix=$2;
+                $content=$3;
+
+                if ($prefix =~ /full:/i) {
+                  print "DOMAIN,$content\n";
+                } elsif ($prefix =~ /regexp:/i) {
+                  print "DOMAIN-REGEX,$content\n";
+                } else {
+                  print "DOMAIN-SUFFIX,$content\n";
+                }
+              }
+            ' "$in" > "$out"
+          }
+
+          v2ray_to_mihomo_domain_text() {
+            local in="$1"
+            local out="$2"
+
+            perl -ne '
+              if (/^((full:)?\S+)/i) {
+                $i=$1;
+                $i =~ s/^full://i or $i = "+." . $i;
+                print "$i\n";
+              }
+            ' "$in" > "$out"
+          }
+
+          EOF
+
+      - name: Generate geosite-httpdns-cn
+        run: |
+          source ./func.sh
+          NAME=httpdns-cn
+          grep -E '^DOMAIN' ./rule-set/${NAME}.list > ./publish/geosite/${NAME}.list
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geoip-httpdns-cn
+        run: |
+          source ./func.sh
+          NAME=httpdns-cn
+          grep -E '^IP-CIDR' ./rule-set/${NAME}.list | cut -d ',' -f 2 > ./publish/geoip/${NAME}.list
+          mihomo_ipcidr_text_to_singbox ./publish/geoip/${NAME}.list ./publish/geoip/${NAME}.json
+          ./mihomo convert-ruleset ipcidr text ./publish/geoip/${NAME}.list ./publish/geoip/${NAME}.mrs
+          ./sing-box rule-set compile ./publish/geoip/${NAME}.json
+
+      - name: Generate geosite-private
+        run: |
+          source ./func.sh
+          NAME=private
+          v2dat unpack geosite -o . -f ${NAME} ./dlc.dat
+          sed -i '/\.qq\.com$/d' ./dlc_${NAME}.txt
+          # echo "full:localhost.weixin.qq.com" >> ./dlc_${NAME}.txt
+          # echo "full:localhost.work.weixin.qq.com" >> ./dlc_${NAME}.txt
+          v2ray_to_mihomo_classical_text ./dlc_${NAME}.txt ./publish/geosite/${NAME}.list
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geoip-private
+        run: |
+          source ./func.sh
+          NAME=private
+          mv ./rule-set/geoip/${NAME}.list ./publish/geoip/
+          mihomo_ipcidr_text_to_singbox ./publish/geoip/${NAME}.list ./publish/geoip/${NAME}.json
+          ./mihomo convert-ruleset ipcidr text ./publish/geoip/${NAME}.list ./publish/geoip/${NAME}.mrs
+          ./sing-box rule-set compile ./publish/geoip/${NAME}.json
+
+      - name: Generate geosite-telegram
+        run: |
+          source ./func.sh
+          NAME=telegram
+          mv ./rule-set/geosite/${NAME}.list ./publish/geosite/
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geoip-telegram
+        run: |
+          source ./func.sh
+          NAME=telegram
+          mv ./rule-set/geoip/${NAME}.list ./publish/geoip/
+          mihomo_ipcidr_text_to_singbox ./publish/geoip/${NAME}.list ./publish/geoip/${NAME}.json
+          ./mihomo convert-ruleset ipcidr text ./publish/geoip/${NAME}.list ./publish/geoip/${NAME}.mrs
+          ./sing-box rule-set compile ./publish/geoip/${NAME}.json
+
+      - name: Generate geosite-icp
+        run: |
+          source ./func.sh
+          NAME=icp
+          mv ./rule-set/geosite/${NAME}.mrs ./publish/geosite/
+          ./mihomo convert-ruleset domain mrs ./publish/geosite/${NAME}.mrs ./publish/geosite/${NAME}.list
+          mihomo_domain_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-connectivity-check
+        run: |
+          source ./func.sh
+          NAME=connectivity-check
+          mv ./rule-set/geosite/${NAME}.list ./publish/geosite/
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-game-download
+        run: |
+          source ./func.sh
+          NAME=game-download
+          grep -E '^DOMAIN' ./rule-set/geosite/${NAME}.list > ./publish/geosite/${NAME}.list
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-steam
+        run: |
+          source ./func.sh
+          NAME=steam
+          mv ./rule-set/geosite/${NAME}.list ./publish/geosite/
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-steamstatic
+        run: |
+          source ./func.sh
+          NAME=steamstatic
+          mv ./rule-set/geosite/${NAME}.list ./publish/geosite/
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-bilibili-pcdn
+        run: |
+          source ./func.sh
+          NAME=bilibili-pcdn
+          grep -E '^DOMAIN' ./rule-set/geosite/${NAME}.list > ./publish/geosite/${NAME}.list
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-bilibili
+        run: |
+          source ./func.sh
+          NAME=bilibili
+          grep -E '^DOMAIN' ./rule-set/geosite/${NAME}.list > ./publish/geosite/${NAME}.list
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-ntp-cn
+        run: |
+          source ./func.sh
+          NAME=ntp-cn
+          mv ./rule-set/geosite/${NAME}.list ./publish/geosite/
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-cn2
+        run: |
+          source ./func.sh
+          NAME=cn2
+          mv ./rule-set/geosite/${NAME}.list ./publish/geosite/
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-cn
+        run: |
+          source ./func.sh
+          NAME=cn
+          v2dat unpack geosite -o . -f geolocation-cn ./dlc.dat
+          v2ray_to_mihomo_classical_text ./dlc_geolocation-cn.txt ./publish/geosite/${NAME}.list
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-tld-cn
+        run: |
+          source ./func.sh
+          NAME=tld-cn
+          v2dat unpack geosite -o . -f ${NAME} ./dlc.dat
+          v2ray_to_mihomo_classical_text ./dlc_${NAME}.txt ./publish/geosite/${NAME}.list
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-!cn2
+        run: |
+          source ./func.sh
+          NAME='!cn2'
+          mv ./rule-set/geosite/${NAME}.list ./publish/geosite/
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-!cn
+        run: |
+          source ./func.sh
+          NAME='!cn'
+          v2dat unpack geosite -o . -f 'geolocation-!cn' ./dlc.dat
+          v2ray_to_mihomo_classical_text './dlc_geolocation-!cn.txt' ./publish/geosite/${NAME}.list
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-!cn@cn
+        run: |
+          source ./func.sh
+          NAME='!cn@cn'
+          v2dat unpack geosite -o . -f 'geolocation-!cn@cn' ./dlc.dat
+          v2ray_to_mihomo_classical_text './dlc_geolocation-!cn@cn.txt' ./publish/geosite/${NAME}.list
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-reward
+        run: |
+          source ./func.sh
+          NAME=reward
+          curl -s https://raw.githubusercontent.com/lingeringsound/10007_auto/main/configure/保留奖励.prop | grep -v "^#" | sed '/^$/d' > ./publish/geosite/${NAME}.list
+          mihomo_domain_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./mihomo convert-ruleset domain text ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.mrs
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-realip
+        run: |
+          source ./func.sh
+          NAME=realip
+          # go run ./d2c
+          # mv output.list ./publish/geosite/${NAME}.list
+          grep -E '^DOMAIN' ./rule-set/geosite/${NAME}.list > ./publish/geosite/${NAME}.list
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geosite-vowifi-cn
+        run: |
+          source ./func.sh
+          NAME=vowifi-cn
+          # go run ./d2c
+          # mv output.list ./publish/geosite/${NAME}.list
+          grep -E '^DOMAIN' ./rule-set/geosite/${NAME}.list > ./publish/geosite/${NAME}.list
+          mihomo_classical_text_to_singbox ./publish/geosite/${NAME}.list ./publish/geosite/${NAME}.json
+          ./sing-box rule-set compile ./publish/geosite/${NAME}.json
+
+      - name: Generate geoip-cn
+        run: |
+          source ./func.sh
+          NAME=cn
+          mkdir -p ./data
+          go run ./bgp-parser
+          mv chnroutes.txt ./publish/geoip/
+          mv chnroutes6.txt ./publish/geoip/
+          mv ${NAME}.list ./publish/geoip/
+          mihomo_ipcidr_text_to_singbox ./publish/geoip/${NAME}.list ./publish/geoip/${NAME}.json
+          ./mihomo convert-ruleset ipcidr text ./publish/geoip/${NAME}.list ./publish/geoip/${NAME}.mrs
+          ./sing-box rule-set compile ./publish/geoip/${NAME}.json
+
+      - name: Commit and push
+        run: |
+          cd publish || exit 1
+          git init
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git checkout -b release
+          git add .
+          git commit -m "Auto-update"
+          git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+          git push -f -u origin release
+
+      - name: Purge jsdelivr CDN
+        run: |
+          cd publish || exit 1
+          find . -type f \( -name "*.mrs" -o -name "*.list" -o -name "*.srs" -o -name "*.json" -o -name "*.txt" \) -print0 | while IFS= read -r -d '' path; do
+            file_path="${path#./}"
+            echo "Purging $file_path"
+            curl -s -I "https://purge.jsdelivr.net/gh/${{ github.repository }}@release/$file_path"
+          done
+
+      - name: Custom clean up workflow runs
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { owner, repo } = context.repo
+
+            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+              owner,
+              repo,
+              per_page: 100
+            })
+
+            const now = new Date()
+            console.log(now.toLocaleString('sv-SE'))
+            const todayStr = now.toLocaleDateString('sv-SE')
+
+            const yesterday = new Date(now)
+            yesterday.setDate(yesterday.getDate() - 1)
+            const yesterdayStr = yesterday.toLocaleDateString('sv-SE')
+
+            const allowedDays = [todayStr, yesterdayStr]
+
+            const keptRuns = new Set()
+
+            for (const run of runs) {
+              const dateString = new Date(run.created_at).toLocaleDateString('sv-SE')
+              const cacheKey = `${run.workflow_id}-${dateString}`
+
+              if (!allowedDays.includes(dateString)) {
+                console.log(`[Delete] Run ${run.id} (${run.name}, ${dateString}) - Older than 2 days`)
+                try {
+                  await github.rest.actions.deleteWorkflowRun({ owner, repo, run_id: run.id })
+                } catch (e) {
+                  console.log(`Skipped or failed: ${e.message}`)
+                }
+                continue
+              }
+
+              if (keptRuns.has(cacheKey)) {
+                console.log(`[Delete] Run ${run.id} (${run.name}, ${dateString}) - Not the latest for this date`)
+                try {
+                  await github.rest.actions.deleteWorkflowRun({ owner, repo, run_id: run.id })
+                } catch (e) {
+                  console.log(`Skipped or failed (possibly running): ${e.message}`)
+                }
+              } else {
+                console.log(`[Retain] Run ${run.id} (${run.name}, ${dateString}) - Latest for this date`)
+                keptRuns.add(cacheKey)
+              }
+            }
+
+    env:
+      TZ: Asia/Shanghai
