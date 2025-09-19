@@ -1,0 +1,25 @@
+# Windows Network Connection Status Indicator
+# https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/troubleshoot-ncsi-guidance#8-check-dns-resolution
+DOMAIN,dns.msftncsi.com
+
+# Multi-Dimensional Monitoring and Reporting for WeChat
+# QQ Mail mobile app suffers slow status refresh with prolonged waiting time when assigned a fake IPv6 address
+DOMAIN,iwx.mail.qq.com
+DOMAIN,cube.weixinbridge.com
+
+# Suspected botched Frida probe / Unintended VPN detector (com.ss.android.ugc.aweme)
+DOMAIN,3132372e302e302e31
+
+# Avoid fake IPs for Active caching proxy type LANCache to preserve type CDN and type SteamCache to work normally
+DOMAIN,lancache.steamcontent.com
+
+# QQ SSO for quick login
+DOMAIN,localhost.sec.qq.com
+DOMAIN,localhost.ptlogin2.qq.com
+
+# WeChat SSO for quick login
+DOMAIN,localhost.weixin.qq.com
+DOMAIN,localhost.work.weixin.qq.com
+
+# Wi-Fi Calling / VoWifi / Voice over wireless LAN (VoWLAN)
+DOMAIN-SUFFIX,pub.3gppnetwork.org
