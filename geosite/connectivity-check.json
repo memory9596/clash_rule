@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "captive.apple.com",
+        "ping.archlinux.org",
+        "redirect.archlinux.org",
+        "network-test.debian.org",
+        "detectportal.firefox.com",
+        "nmcheck.gnome.org",
+        "networkcheck.kde.org",
+        "edge.microsoft.com",
+        "edge-http.microsoft.com",
+        "connectivity-check.ubuntu.com"
+      ],
+      "domain_suffix": [
+        "msftconnecttest.com",
+        "msftncsi.com"
+      ]
+    }
+  ]
+}

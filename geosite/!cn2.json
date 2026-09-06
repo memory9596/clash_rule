@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain_suffix": [
+        "u.fastly-analytics.com",
+        "dns4.browserleaks.net",
+        "dns6.browserleaks.net",
+        "dns4.browserleaks.org",
+        "dns6.browserleaks.org",
+        "ipv4.surfsharkdns.com",
+        "ipv6.surfsharkdns.com"
+      ]
+    }
+  ]
+}

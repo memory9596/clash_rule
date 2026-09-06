@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain_suffix": [
+        "mcc460.pub.3gppnetwork.org"
+      ]
+    }
+  ]
+}
