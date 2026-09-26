@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "msrewardspme.azureedge.net"
+      ],
+      "domain_suffix": [
+        "bing.com",
+        "bing.net",
+        "events.data.microsoft.com"
+      ]
+    }
+  ]
+}

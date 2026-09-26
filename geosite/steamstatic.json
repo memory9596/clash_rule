@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "video.akamai.steamstatic.com",
+        "video.fastly.steamstatic.com"
+      ]
+    }
+  ]
+}

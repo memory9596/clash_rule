@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "dns.msftncsi.com",
+        "iwx.mail.qq.com",
+        "cube.weixinbridge.com",
+        "3132372e302e302e31",
+        "lancache.steamcontent.com",
+        "localhost.sec.qq.com",
+        "localhost.ptlogin2.qq.com",
+        "localhost.weixin.qq.com",
+        "localhost.work.weixin.qq.com"
+      ],
+      "domain_suffix": [
+        "pub.3gppnetwork.org"
+      ]
+    }
+  ]
+}
