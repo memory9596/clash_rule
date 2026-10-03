@@ -1,0 +1,2 @@
+DOMAIN,services.googleapis.cn
+DOMAIN-REGEX,^r+[0-9]+(---|\.)sn-(2x3|ni5|j5o)\w{5}\.

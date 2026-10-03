@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "community.oneplus.com"
+      ],
+      "domain_suffix": [
+        "browserleaks.net",
+        "browserleaks.org",
+        "fastly-analytics.com",
+        "surfsharkdns.com"
+      ]
+    }
+  ]
+}

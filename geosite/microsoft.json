@@ -1,0 +1,30 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "msrewardspme.azureedge.net",
+        "cn.bing.com",
+        "rewards.bing.com",
+        "www.bing.com",
+        "browser.events.data.msn.com",
+        "functional.events.data.microsoft.com",
+        "self.events.data.microsoft.com",
+        "v10.events.data.microsoft.com",
+        "watson.events.data.microsoft.com",
+        "watson.telemetry.microsoft.com",
+        "www.microsoft.com",
+        "inference.location.live.net",
+        "api.msn.com",
+        "arc.msn.com",
+        "ris.api.iris.microsoft.com",
+        "fd.api.iris.microsoft.com",
+        "browser.events.data.microsoft.com",
+        "mobile.events.data.microsoft.com"
+      ],
+      "domain_regex": [
+        "^[a-z]{2}-mobile\\.events\\.data\\.microsoft\\.com$"
+      ]
+    }
+  ]
+}
