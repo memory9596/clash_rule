@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "msrewardspme.azureedge.net",
+        "cn.bing.com",
+        "rewards.bing.com",
+        "www.bing.com",
+        "browser.events.data.msn.com",
+        "functional.events.data.microsoft.com",
+        "v10.events.data.microsoft.com",
+        "watson.events.data.microsoft.com",
+        "watson.telemetry.microsoft.com",
+        "www.microsoft.com",
+        "inference.location.live.net",
+        "api.msn.com",
+        "arc.msn.com",
+        "ris.api.iris.microsoft.com",
+        "fd.api.iris.microsoft.com",
+        "browser.events.data.microsoft.com",
+        "assets.msn.com",
+        "superapp.msn.com",
+        "location.microsoft.com",
+        "prod.rewardsplatform.microsoft.com"
+      ],
+      "domain_suffix": [
+        "wns.windows.com",
+        "nelreports.net",
+        "mm.bing.net",
+        "sapphire.api.microsoftapp.net",
+        "sapphire.azureedge.net",
+        "sapphire.microsoftapp.net"
+      ],
+      "domain_keyword": [
+        "mobile.events.data.microsoft.com"
+      ]
+    }
+  ]
+}

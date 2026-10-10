@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "services.googleapis.cn"
+      ],
+      "domain_regex": [
+        "^r+[0-9]+(---|\\.)sn-(2x3|ni5|j5o)\\w{5}\\."
+      ]
+    }
+  ]
+}
