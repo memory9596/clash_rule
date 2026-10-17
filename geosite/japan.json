@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "cdn.faleno.net"
+      ],
+      "domain_suffix": [
+        "av-event.jp",
+        "dahlia-av.jp",
+        "duga.jp",
+        "faleno.jp",
+        "dmm.co.jp",
+        "fanza.jp",
+        "pandalive.co.jp",
+        "prestige-av.com",
+        "mgstage.com",
+        "sod.co.jp"
+      ]
+    }
+  ]
+}
