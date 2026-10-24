@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "community.oneplus.com",
+        "perfops2.byte-test.com"
+      ],
+      "domain_suffix": [
+        "browserleaks.net",
+        "browserleaks.org",
+        "fastly-analytics.com",
+        "surfsharkdns.com"
+      ]
+    }
+  ]
+}
