@@ -1,0 +1,13 @@
+DOMAIN,msrewardspme.azureedge.net
+DOMAIN,prod.rewardsplatform.microsoft.com
+DOMAIN,fd.api.iris.microsoft.com
+DOMAIN-SUFFIX,pipe.aria.microsoft.com
+DOMAIN-SUFFIX,bing.com
+DOMAIN-SUFFIX,bing.net
+DOMAIN,location.microsoft.com
+DOMAIN-SUFFIX,msn.com
+DOMAIN-SUFFIX,office.com
+DOMAIN-SUFFIX,office.net
+DOMAIN,login.microsoftonline.com
+DOMAIN,login.live.com
+DOMAIN-SUFFIX,prod.do.dsp.mp.microsoft.com
