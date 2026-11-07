@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "cn.bing.com",
+        "www.bing.com",
+        "rewards.bing.com",
+        "msrewardspme.azureedge.net"
+      ],
+      "domain_suffix": [
+        "prod.do.dsp.mp.microsoft.com"
+      ]
+    }
+  ]
+}
