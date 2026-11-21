@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "cdn.sapphire.microsoftapp.net",
+        "cn.bing.com",
+        "msrewardspme.azureedge.net",
+        "rewards.bing.com",
+        "www.bing.com"
+      ]
+    }
+  ]
+}

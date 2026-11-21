@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "app.bilibili.com",
+        "api.bilibili.com",
+        "www.bilibili.com",
+        "grpc.biliapi.net"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "pool.ntp.org",
+        "asia.pool.ntp.org",
+        "cn.pool.ntp.org",
+        "hk.pool.ntp.org",
+        "jp.pool.ntp.org",
+        "sg.pool.ntp.org",
+        "tw.pool.ntp.org",
+        "time.asia.apple.com",
+        "time-ios.g.aaplimg.com"
+      ]
+    }
+  ]
+}
