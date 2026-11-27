@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "assets.msn.com",
+        "cn.bing.com",
+        "rewards.bing.com",
+        "www.bing.com"
+      ]
+    }
+  ]
+}

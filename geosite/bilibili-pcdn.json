@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "domain": [
+        "upos-sz-302ppio.bilivideo.com",
+        "upos-sz-302kodo.bilivideo.com"
+      ],
+      "domain_suffix": [
+        "mcdn.bilivideo.cn",
+        "edge.mountaintoys.cn"
+      ]
+    }
+  ]
+}
